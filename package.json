@@ -6,22 +6,31 @@
   "main": "src/index.js",
   "repository": "nealgranger/redux-ephemeral",
   "scripts": {
-    "lint": "./node_modules/.bin/eslint --ignore-path .gitignore ."
+    "prepublish": "./node_modules/.bin/babel -s inline -d dist/src src/",
+    "pretest": "npm run prepublish && ./node_modules/.bin/babel -s inline -d dist/test test/",
+    "lint": "./node_modules/.bin/eslint --ignore-path .gitignore .",
+    "test": "./node_modules/.bin/mocha dist/test/spec/"
   },
   "devDependencies": {
-    "babel-core": "^5.5.6",
+    "babel-cli": "^6.0.14",
     "babel-eslint": "^4.1.3",
+    "babel-preset-metalab": "nealgranger/babel-preset-metalab",
+    "chai": "^3.4.0",
     "eslint": "^1.6.0",
     "eslint-config-metalab": "^0.2.2",
     "eslint-plugin-filenames": "^0.1.2",
     "eslint-plugin-import": "^0.8.1",
-    "eslint-plugin-react": "^3.6.3"
+    "eslint-plugin-react": "^3.6.3",
+    "mocha": "^2.3.3",
+    "react": "^0.14.1",
+    "react-dom": "^0.14.1",
+    "redux": "^3.0.4"
   },
   "dependencies": {
     "lodash.isstring": "^3.0.1",
-    "redux-lift": "^0.1.0",
-    "wrap-component": "^0.1.0",
     "react": "^0.14.1",
-    "react-redux": "^4.0.0"
+    "react-redux": "^4.0.0",
+    "redux-lift": "^0.1.1",
+    "wrap-component": "nealgranger/wrap-component"
   }
 }

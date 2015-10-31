@@ -1,60 +1,79 @@
-import { Component, createElement } from 'react';
+import React, { Component, createElement } from 'react';
 import isString from 'lodash.isstring';
 import { connect } from 'react-redux';
 import storeShape from 'react-redux/lib/utils/storeShape';
 import wrapComponent from 'wrap-component';
+import { setState, setInitialState } from './action-creators';
 
-import { SET_EPHEMERAL_STATE } from './action-types';
+function defaultMapState(state) {
+  return { state };
+}
 
-const identity = val => val;
+function defaultMapSetState(setState) {
+  return { setState };
+}
 
-function defaultComputeKey(node) {
+function defaultKey(node) {
   // TODO: Compute an id based on the node's moint point in the dom tree.
 }
 
-function setEphemeralState(key, value) {
-  return {
-    type: SET_EPHEMERAL_STATE,
-    payload: { [key]: value },
-  };
-}
-
-export function ephemeral(
-  mapSetState = identity,
-  mapValue = identity,
-  computeKey = defaultComputeKey
-) {
+export default function ephemeral({
+  mapSetState = defaultMapSetState,
+  mapState = defaultMapState,
+  key = defaultKey,
+  initialState
+} = {}) {
   return wrapComponent(Wrapped => {
-    function retrieveEphemeralValue(state, key) {
-      return state[key];
+    function retrieveEphemeralState(state, key) {
+      return state[1][key];
     }
 
-    function getComputedKey(component) {
-      return isString(computeKey) ? computeKey : computeKey(component);
+    function computeKey(component) {
+      return isString(key) ? key : key(component);
+    }
+
+    function createConnectedComponent(key) {
+      const mapStateToProps = state => {
+        let ephemeralState;
+
+        if (initialState !== undefined) {
+          ephemeralState = initialState;
+        } else {
+          ephemeralState = retrieveEphemeralState(state, key);
+        }
+        return mapState(ephemeralState);
+      };
+
+      const mapDispacthToProps = dispatch => {
+        return mapSetState(
+          value => dispatch(setState(key, value))
+        );
+      }
+
+      return connect(
+        mapStateToProps,
+        mapDispacthToProps
+      )(Wrapped);
     }
 
     class Ephemeral extends Component {
       constructor(props, context) {
         super(props, context);
 
-        const key = getComputedKey(this);
+        this.key = computeKey(this);
 
-        const mapStateToProps = state => mapValue(
-          retrieveEphemeralValue(state, key)
-        );
+        if (initialState !== undefined) {
+          context.store.dispatch(
+            setInitialState(this.key, initialState)
+          );
+        }
 
-        const mapDispacthToProps = dispatch => mapSetState(
-          value => dispatch(setEphemeralState(key, value))
-        );
-
-        this.ConnectedComponent = connect(
-          mapStateToProps,
-          mapDispacthToProps
-        )(Wrapped);
+        this.store = context.store;
+        this.ConnectedComponent = createConnectedComponent(this.key);
       }
 
-      render(props) {
-        return <this.ConnectedComponent {...props} />;
+      render() {
+        return <this.ConnectedComponent {...this.props} />;
       }
     }
 
