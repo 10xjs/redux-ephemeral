@@ -1,0 +1,1 @@
+export const SET_EPHEMERAL_STATE = ' SET_EPHEMERAL_STATE';
