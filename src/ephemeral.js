@@ -3,6 +3,7 @@ import isString from 'lodash.isstring';
 import { connect } from 'react-redux';
 import storeShape from 'react-redux/lib/utils/storeShape';
 import wrapComponent from 'wrap-component';
+import connectContext from 'connect-context';
 import { setState, setInitialState } from './action-creators';
 
 function defaultMapState(state) {
@@ -21,7 +22,8 @@ export default function ephemeral({
   mapSetState = defaultMapSetState,
   mapState = defaultMapState,
   key = defaultKey,
-  initialState
+  initialState,
+  context = 'ephemeral'
 } = {}) {
   return wrapComponent(Wrapped => {
     function retrieveEphemeralState(state, key) {
@@ -80,6 +82,6 @@ export default function ephemeral({
     Ephemeral.contextTypes = { store: storeShape };
     Ephemeral.propTypes = { store: storeShape };
 
-    return Ephemeral;
+    return connectContext(context)(Ephemeral);
   });
 }
