@@ -1,0 +1,28 @@
+{
+  "name": "redux-ephemeral",
+  "author": "Neal Granger <neal@nealg.com>",
+  "version": "0.1.0",
+  "license": "CC0-1.0",
+  "main": "index.js",
+  "repository": "nealgranger/redux-ephemeral",
+  "scripts": {
+    "lint": "./node_modules/.bin/eslint --ignore-path .gitignore ."
+  },
+  "devDependencies": {
+    "babel-eslint": "^4.1.3",
+    "eslint": "^1.6.0",
+    "eslint-config-metalab": "^0.2.2",
+    "eslint-plugin-filenames": "^0.1.2",
+    "eslint-plugin-import": "^0.8.1",
+    "eslint-plugin-react": "^3.6.3"
+  },
+  "dependencies": {
+    "lodash.isstring": "^3.0.1",
+    "redux-lift": "^0.1.0",
+    "wrap-component": "^0.1.0"
+  },
+  "peerDependencies": {
+    "react": "^0.14.1",
+    "react-redux": "^4.0.0"
+  }
+}
