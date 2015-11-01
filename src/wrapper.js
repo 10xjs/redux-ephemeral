@@ -2,13 +2,15 @@ import React, { Component, createElement } from 'react';
 import { connect } from 'react-redux';
 import storeShape from 'react-redux/lib/utils/storeShape';
 import wrapComponent from 'wrap-component';
+import { mapStore } from 'multi-provider';
+import counter from './counter';
+
 import {
   setState,
   setInitialState,
   replaceState,
   clearState,
 } from './action-creators';
-import counter from './counter';
 
 export const keys = counter();
 
@@ -21,10 +23,10 @@ export default function ephemeral({
 } = {}) {
   return wrapComponent(Wrapped => {
     function retrieveStateFromStore(storeState, key) {
-      return storeState[1][key];
+      return storeState[key];
     }
 
-    function createConnectedComponent(key) {
+    function createConnect(key) {
       const mapStateToProps = storeState => {
         let state = retrieveStateFromStore(storeState, key);
         if (state === undefined) {
@@ -40,10 +42,7 @@ export default function ephemeral({
         });
       };
 
-      return connect(
-        mapStateToProps,
-        mapDispacthToProps
-      )(Wrapped);
+      return connect( mapStateToProps, mapDispacthToProps );
     }
 
     class Ephemeral extends Component {
@@ -55,7 +54,7 @@ export default function ephemeral({
 
         this.store.dispatch(setInitialState(this.key, initialState));
 
-        this.ConnectedComponent = createConnectedComponent(this.key);
+        this.Wrapped = createConnect(this.key)(Wrapped);
       }
 
       componentWillUnmount() {
@@ -63,12 +62,12 @@ export default function ephemeral({
       }
 
       render() {
-        return <this.ConnectedComponent {...this.props} />;
+        return <this.Wrapped {...this.props} />;
       }
     }
     Ephemeral.contextTypes = { store: storeShape };
     Ephemeral.propTypes = { store: storeShape };
 
-    return Ephemeral;
+    return  mapStore('ephemeral')(Ephemeral);
   });
 }
