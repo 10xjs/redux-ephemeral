@@ -22,7 +22,7 @@ function unliftState([ child ]) {
   return child;
 }
 
-function getState([ , ephemeral ]) {
+export function getState([ , ephemeral ]) {
   return ephemeral;
 }
 

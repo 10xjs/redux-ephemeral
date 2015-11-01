@@ -10,6 +10,8 @@ import { Provider } from 'multi-provider';
 
 import { enhancer, ephemeral } from '../../src';
 import { keys } from '../../src/wrapper';
+import { name, normalize } from 'redux-lift';
+
 
 // Setup the simplest document possible.
 const document = jsdom.jsdom('<!doctype html><html><body></body></html>');
@@ -31,7 +33,12 @@ function app(state) {
   return state;
 }
 
-const store = enhancer(createStore)(app);
+const createNamedStores = compose(
+  normalize,
+  name('ephemeral')(enhancer)(createStore)
+);
+
+const stores = createNamedStores(app);
 
 describe('The ephemeral wrapper', () => {
   it('should preserve the behaviour of the original component', () => {
@@ -44,12 +51,12 @@ describe('The ephemeral wrapper', () => {
     const WrappedThing = ephemeral()(Thing);
 
     const renderedThing = renderToStaticMarkup(
-      <Provider store={store.parent}>
+      <Provider stores={stores}>
         <Thing/>
       </Provider>
     );
     const renderedWrappedThing = renderToStaticMarkup(
-      <Provider stores={{ ephemeral: store, default: store.parent }}>
+      <Provider stores={stores}>
         <WrappedThing/>
       </Provider>
     );
@@ -59,7 +66,6 @@ describe('The ephemeral wrapper', () => {
 
   it('should remove the state from the store on component unmount', () => {
     const initialState = { hand: 'banana' };
-
     class Thing extends Component {
 
       render() {
@@ -73,16 +79,16 @@ describe('The ephemeral wrapper', () => {
 
     render(
       (
-        <Provider stores={{ ephemeral: store, default: store.parent }}>
+        <Provider stores={stores}>
           <WrappedThing/>
         </Provider>
       ),
       div
     );
 
-    expect(store.getState()[1][keys.last()]).to.deep.equal(initialState);
+    expect(stores.ephemeral.getState()[1][keys.last()]).to.deep.equal(initialState);
     unmountComponentAtNode(div);
-    expect(store.getState()[1][keys.last()]).to.be.undefined;
+    expect(stores.ephemeral.getState()[1][keys.last()]).to.be.undefined;
   });
 
   describe('initial state', () => {
@@ -98,12 +104,12 @@ describe('The ephemeral wrapper', () => {
       const WrappedThing = ephemeral({ initialState })(Thing);
 
       renderToStaticMarkup(
-        <Provider stores={{ ephemeral: store, default: store.parent }}>
+        <Provider stores={stores}>
           <WrappedThing/>
         </Provider>
       );
 
-      expect(store.getState()[1][keys.last()]).to.deep.equal(initialState);
+      expect(stores.ephemeral.getState()[1][keys.last()]).to.deep.equal(initialState);
     });
 
     it('should be avaialble to initial render', () => {
@@ -120,7 +126,7 @@ describe('The ephemeral wrapper', () => {
       const WrappedThing = ephemeral({ initialState })(Thing);
 
       const renderedWrappedThing = renderToStaticMarkup(
-        <Provider stores={{ ephemeral: store, default: store.parent }}>
+        <Provider stores={stores}>
           <WrappedThing/>
         </Provider>
       );
@@ -145,7 +151,7 @@ describe('The ephemeral wrapper', () => {
       const WrappedThing = ephemeral()(Thing);
 
       renderToStaticMarkup(
-        <Provider stores={{ ephemeral: store, default: store.parent }}>
+        <Provider stores={stores}>
           <WrappedThing/>
         </Provider>
       );
@@ -168,7 +174,7 @@ describe('The ephemeral wrapper', () => {
       })(Thing);
 
       renderToStaticMarkup(
-        <Provider stores={{ ephemeral: store, default: store.parent }}>
+        <Provider stores={stores}>
           <WrappedThing/>
         </Provider>
       );
@@ -195,7 +201,7 @@ describe('The ephemeral wrapper', () => {
       })(Thing);
 
       renderToStaticMarkup(
-        <Provider stores={{ ephemeral: store, default: store.parent }}>
+        <Provider stores={stores}>
           <WrappedThing/>
         </Provider>
       );
@@ -218,7 +224,7 @@ describe('The ephemeral wrapper', () => {
       })(Thing);
 
       renderToStaticMarkup(
-        <Provider stores={{ ephemeral: store, default: store.parent }}>
+        <Provider stores={stores}>
           <WrappedThing/>
         </Provider>
       );
@@ -245,10 +251,11 @@ describe('The ephemeral wrapper', () => {
       })(Thing);
 
       renderToStaticMarkup(
-        <Provider stores={{ ephemeral: store, default: store.parent }}>
+        <Provider stores={stores}>
           <WrappedThing/>
         </Provider>
       );
     });
   });
 });
+
