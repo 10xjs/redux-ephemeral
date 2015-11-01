@@ -1,15 +1,34 @@
-import { SET_STATE, SET_INITIAL_STATE } from './action-types';
+import {
+  SET_INITIAL_STATE,
+  SET_STATE,
+  REPLACE_STATE,
+  CLEAR_STATE,
+ } from './action-types';
 
-export function setState(key, value) {
+export function setInitialState(key, state = {}) {
   return {
-    type: SET_STATE,
-    payload: { [key]: value },
+    type: SET_INITIAL_STATE,
+    payload: { [key]: state },
   };
 }
 
-export function setInitialState(key, value) {
+export function setState(key, state = {}) {
   return {
-    type: SET_INITIAL_STATE,
-    payload: { [key]: value },
+    type: SET_STATE,
+    payload: [ key, state ],
+  };
+}
+
+export function replaceState(key, state = {}) {
+  return {
+    type: REPLACE_STATE,
+    payload: { [key]: state },
+  };
+}
+
+export function clearState(key) {
+  return {
+    type: CLEAR_STATE,
+    payload: key,
   };
 }

@@ -1,10 +1,18 @@
+import omit from 'lodash.omit';
+
 import {
   unliftAction,
   liftAction,
   lift,
 } from 'redux-lift';
 
-import { SET_STATE, SET_INITIAL_STATE, CHILD } from './action-types';
+import {
+  SET_INITIAL_STATE,
+  SET_STATE,
+  REPLACE_STATE,
+  CLEAR_STATE,
+  CHILD,
+} from './action-types';
 
 function liftState(child, ephemeral = {}) {
   return [ child, ephemeral ];
@@ -20,18 +28,26 @@ function getState([ , ephemeral ]) {
 
 function liftReducer(reducer) {
   return (state, action) => {
+    const updateState = (ephemeral) => liftState(unliftState(state), ephemeral);
     switch (action.type) {
     case CHILD:
       return liftState(
         reducer(unliftState(state), unliftAction(action)),
         getState(state)
       );
-    case SET_STATE:
+    case REPLACE_STATE:
     case SET_INITIAL_STATE:
-      return liftState(
-        unliftState(state),
-        { ...getState(state), ...action.payload }
-      );
+      return updateState({ ...getState(state), ...action.payload });
+    case SET_STATE:
+      const [ key, value ] = action.payload;
+      const currentState = getState(state)[key];
+      const nextState = {
+        ...currentState,
+        ...value,
+      };
+      return updateState({ ...getState(state), [key]: nextState });
+    case CLEAR_STATE:
+      return updateState(omit(getState(state), action.payload));
     default:
       return state;
     }

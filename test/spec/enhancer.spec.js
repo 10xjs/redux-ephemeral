@@ -4,7 +4,11 @@ import { createStore } from 'redux';
 import { expect } from 'chai';
 
 import { enhancer } from '../../src';
-import { setState } from '../../src/action-creators';
+import {
+  setState,
+  setInitialState,
+  replaceState,
+} from '../../src/action-creators';
 
 // Simple reducer.
 function app(state, { type, value }) {
@@ -28,9 +32,32 @@ describe('The ephemeral enhancer', () => {
     expect(store.parent.getState()).to.equal(6);
   });
 
-  it('should store value using `setState` action creator', () => {
+  it('should store state using `setInitialState`', () => {
     const store = enhancer(createStore)(app, 4);
-    store.dispatch(setState('foo', 'bar'));
-    expect(store.getState()[1].foo).to.equal('bar');
+    const state =  { foo: 'bar' };
+    store.dispatch(setInitialState(0, state));
+    expect(store.getState()[1][0]).to.deep.equal(state);
+  });
+
+  it('should shallow merge state using `setState`', () => {
+    const store = enhancer(createStore)(app, 4);
+    const state1 =  { foo: 'bar', bar: 'foo' };
+    const state2 =  { foo: 'foo', ham: 'sandwiches' };
+    const mergedState = {
+      ...state1,
+      ...state2,
+    };
+    store.dispatch(setInitialState(0, state1));
+    store.dispatch(setState(0, state2));
+    expect(store.getState()[1][0]).to.deep.equal(mergedState);
+  });
+
+  it('should overwrite state using `replaceState`', () => {
+    const store = enhancer(createStore)(app, 4);
+    const state1 =  { foo: 'bar' };
+    const state2 =  { potato: 'salad' };
+    store.dispatch(setInitialState(0, state1));
+    store.dispatch(replaceState(0, state2));
+    expect(store.getState()[1][0]).to.deep.equal(state2);
   });
 });

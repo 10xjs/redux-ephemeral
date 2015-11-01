@@ -1,21 +1,39 @@
-/* global describe, it */
+/*eslint-env node, mocha */
 
 import { createStore } from 'redux';
 import { expect } from 'chai';
 import React, { Component, createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server'
+import { render, unmountComponentAtNode } from 'react-dom';
+import { renderToStaticMarkup } from 'react-dom/server';
+import jsdom from 'jsdom';
 import { Provider } from 'react-redux';
 
 import { enhancer, ephemeral } from '../../src';
-import { setState } from '../../src/action-creators';
+import { keys } from '../../src/ephemeral';
+
+// Setup the simplest document possible.
+const document = jsdom.jsdom('<!doctype html><html><body></body></html>');
+
+// Set the window object out of the document.
+const window = document.defaultView;
+
+// Set globals for mocha that make access to document and window feel natural in
+// the test environment.
+global.document = document;
+global.window = window;
+
+// Take all properties of the window object and also attach it to the  mocha
+// global object.
+Object.assign(global, { document, window }, window);
 
 // Simple reducer.
 function app(state) {
   return state;
 }
 
-describe('The ephemeral wrapper', () => {
+const store = enhancer(createStore)(app);
 
+describe('The ephemeral wrapper', () => {
   it('should preserve the behaviour of the original component', () => {
     class Thing extends Component {
       render() {
@@ -23,7 +41,6 @@ describe('The ephemeral wrapper', () => {
       }
     }
 
-    const store = enhancer(createStore)(app);
     const WrappedThing = ephemeral()(Thing);
 
     const renderedThing = renderToStaticMarkup(
@@ -40,33 +57,6 @@ describe('The ephemeral wrapper', () => {
     expect(renderedWrappedThing).to.equal(renderedThing);
   });
 
-  it('should render the state from the store', () => {
-    const key = 'input';
-    const state = 'text';
-
-    class Thing extends Component {
-      render() {
-        return <span>{this.props.state}</span>;
-      }
-    }
-
-    const renderedThing = `<span>${state}</span>`;
-
-    const store = enhancer(createStore)(app);
-    const WrappedThing = ephemeral({ key })(Thing);
-
-    store.dispatch(setState(key, state));
-
-
-    const renderedWrappedThing = renderToStaticMarkup(
-      <Provider store={store}>
-        <WrappedThing/>
-      </Provider>
-    );
-
-    expect(renderedWrappedThing).to.equal(renderedThing);
-  });
-
   it('should set an initial state via `initialState`', () => {
     class Thing extends Component {
       render() {
@@ -74,11 +64,9 @@ describe('The ephemeral wrapper', () => {
       }
     }
 
-    const key = 'freeman';
-    const initialState = 'half-life 3';
+    const initialState = { vapuor: 'half-life 3' };
 
-    const store = enhancer(createStore)(app);
-    const WrappedThing = ephemeral({ initialState, key })(Thing);
+    const WrappedThing = ephemeral({ initialState })(Thing);
 
     renderToStaticMarkup(
       <Provider store={store}>
@@ -86,23 +74,21 @@ describe('The ephemeral wrapper', () => {
       </Provider>
     );
 
-    expect(store.getState()[1][key]).to.equal(initialState);
+    expect(store.getState()[1][keys.last()]).to.deep.equal(initialState);
   });
 
   it('should render an initial state via `initialState`', () => {
     class Thing extends Component {
       render() {
-        return <span>{this.props.state}</span>;
+        return <span>{this.props.state.meta}</span>;
       }
     }
 
-    const key = 'meta';
-    const initialState = 'lab';
+    const initialState = { meta: 'lab' };
 
-    const renderedThing = `<span>${initialState}</span>`;
+    const renderedThing = `<span>${initialState.meta}</span>`;
 
-    const store = enhancer(createStore)(app);
-    const WrappedThing = ephemeral({ initialState, key})(Thing);
+    const WrappedThing = ephemeral({ initialState })(Thing);
 
     const renderedWrappedThing = renderToStaticMarkup(
       <Provider store={store}>
@@ -113,30 +99,31 @@ describe('The ephemeral wrapper', () => {
     expect(renderedWrappedThing).to.equal(renderedThing);
   });
 
-  it('should update the store with `setState`', () => {
-    const key = 'hand';
-    const state = 'banana';
+  it('should remove the state from the store on unmount', () => {
+    const initialState = { hand: 'banana' };
 
     class Thing extends Component {
-      componentWillMount() {
-        this.props.setState(state);
-      }
 
       render() {
         return <span />;
       }
     }
 
-    const store = enhancer(createStore)(app);
-    const WrappedThing = ephemeral({ key })(Thing);
+    const WrappedThing = ephemeral({ initialState })(Thing);
 
-    renderToStaticMarkup(
-      <Provider store={store}>
-        <WrappedThing/>
-      </Provider>
+    const div = document.createElement('div');
+
+    render(
+      (
+        <Provider store={store}>
+          <WrappedThing/>
+        </Provider>
+      ),
+      div
     );
 
-    expect(store.getState()[1][key]).to.equal(state);
+    expect(store.getState()[1][keys.last()]).to.deep.equal(initialState);
+    unmountComponentAtNode(div);
+    expect(store.getState()[1][keys.last()]).to.be.undefined;
   });
-
 });
