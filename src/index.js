@@ -1,2 +1,2 @@
-export { default as ephemeral } from './ephemeral';
+export { default as ephemeral } from './wrapper';
 export { default as enhancer } from './enhancer';

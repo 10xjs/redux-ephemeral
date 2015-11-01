@@ -3,7 +3,7 @@
   "author": "Neal Granger <neal@nealg.com>",
   "version": "0.1.0",
   "license": "CC0-1.0",
-  "main": "src/index.js",
+  "main": "dist/src/index.js",
   "repository": "nealgranger/redux-ephemeral",
   "scripts": {
     "prepublish": "./node_modules/.bin/babel -s inline -d dist/src src/",
