@@ -5,6 +5,8 @@ import wrapComponent from 'wrap-component';
 import { mapStore } from 'multi-provider';
 import counter from './counter';
 
+import getState from './enhancer';
+
 import {
   setState,
   setInitialState,
@@ -24,7 +26,7 @@ export default function ephemeral({
 } = {}) {
   return wrapComponent(Wrapped => {
     function retrieveStateFromStore(storeState, key) {
-      return storeState[key];
+      return getState(storeState)[key];
     }
 
     function createConnect(key) {
