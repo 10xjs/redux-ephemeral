@@ -1,30 +1,20 @@
-/*eslint-env node, mocha */
+/* eslint-env node, mocha */
 
-import { createStore, compose } from 'redux';
+import { createStore } from 'redux';
 import { expect } from 'chai';
-import React, { Component, createElement } from 'react';
+import { createElement } from 'react';
 import { render, unmountComponentAtNode } from 'react-dom';
 import { renderToStaticMarkup } from 'react-dom/server';
-import jsdom from 'jsdom';
 import { Provider } from 'multi-provider';
 
 import { enhancer, ephemeral } from '../../src';
 import { keys } from '../../src/wrapper';
 
-// Setup the simplest document possible.
-const document = jsdom.jsdom('<!doctype html><html><body></body></html>');
+import BasicComponent from '../fixtures/basic-component';
+import ValueComponent from '../fixtures/value-component';
+import window from '../fixtures/dom';
 
-// Set the window object out of the document.
-const window = document.defaultView;
-
-// Set globals for mocha that make access to document and window feel natural in
-// the test environment.
-global.document = document;
-global.window = window;
-
-// Take all properties of the window object and also attach it to the  mocha
-// global object.
-Object.assign(global, { document, window }, window);
+Object.assign(global, window);
 
 // Simple reducer.
 function app(state) {
@@ -35,51 +25,32 @@ const store = enhancer(createStore)(app);
 
 describe('The ephemeral wrapper', () => {
   it('should preserve the behaviour of the original component', () => {
-    class Thing extends Component {
-      render() {
-        return <span>cheezy potatos</span>;
-      }
-    }
-
-    const WrappedThing = ephemeral()(Thing);
-
-    const renderedThing = renderToStaticMarkup(
+    const Wrapped = ephemeral()(BasicComponent);
+    const rendered = renderToStaticMarkup(
       <Provider store={store.parent}>
-        <Thing/>
+        <BasicComponent/>
       </Provider>
     );
-    const renderedWrappedThing = renderToStaticMarkup(
+    const renderedWrapped = renderToStaticMarkup(
       <Provider stores={{ ephemeral: store, default: store.parent }}>
-        <WrappedThing/>
+        <Wrapped/>
       </Provider>
     );
-
-    expect(renderedWrappedThing).to.equal(renderedThing);
+    expect(renderedWrapped).to.equal(rendered);
   });
 
   it('should remove the state from the store on component unmount', () => {
     const initialState = { hand: 'banana' };
-
-    class Thing extends Component {
-
-      render() {
-        return <span />;
-      }
-    }
-
-    const WrappedThing = ephemeral({ initialState })(Thing);
-
-    const div = document.createElement('div');
-
+    const Wrapped = ephemeral({ initialState })(BasicComponent);
+    const div = global.document.createElement('div');
     render(
       (
         <Provider stores={{ ephemeral: store, default: store.parent }}>
-          <WrappedThing/>
+          <Wrapped/>
         </Provider>
       ),
       div
     );
-
     expect(store.getState()[1][keys.last()]).to.deep.equal(initialState);
     unmountComponentAtNode(div);
     expect(store.getState()[1][keys.last()]).to.be.undefined;
@@ -87,66 +58,47 @@ describe('The ephemeral wrapper', () => {
 
   describe('initial state', () => {
     it('should get set on component mount', () => {
-      class Thing extends Component {
-        render() {
-          return <span />;
-        }
-      }
-
-      const initialState = { soon: 'half-life 3' };
-
-      const WrappedThing = ephemeral({ initialState })(Thing);
-
+      const initialState = { value: 'component value' };
+      const Wrapped = ephemeral({ initialState })(BasicComponent);
       renderToStaticMarkup(
         <Provider stores={{ ephemeral: store, default: store.parent }}>
-          <WrappedThing/>
+          <Wrapped/>
         </Provider>
       );
-
       expect(store.getState()[1][keys.last()]).to.deep.equal(initialState);
     });
 
     it('should be avaialble to initial render', () => {
-      class Thing extends Component {
-        render() {
-          return <span>{this.props.state.meta}</span>;
-        }
-      }
-
-      const initialState = { meta: 'lab' };
-
-      const renderedThing = `<span>${initialState.meta}</span>`;
-
-      const WrappedThing = ephemeral({ initialState })(Thing);
-
-      const renderedWrappedThing = renderToStaticMarkup(
-        <Provider stores={{ ephemeral: store, default: store.parent }}>
-          <WrappedThing/>
+      const initialState = { value: 'component value' };
+      const Wrapped = ephemeral({ initialState })(ValueComponent);
+      const rendered = renderToStaticMarkup(
+        <Provider store={store.parent}>
+          <ValueComponent state={initialState}/>
         </Provider>
       );
-
-      expect(renderedWrappedThing).to.equal(renderedThing);
+      const renderedWrapped = renderToStaticMarkup(
+        <Provider stores={{ ephemeral: store, default: store.parent }}>
+          <Wrapped/>
+        </Provider>
+      );
+      expect(renderedWrapped).to.equal(rendered);
     });
   });
 
   describe('props', () => {
     it('should be set', () => {
-      class Thing extends Component {
-        render() {
-          expect(this.props).to.include.keys(
-            'setState',
-            'replaceState',
-            'state'
-          );
-          return <span/>;
-        }
-      }
-
-      const WrappedThing = ephemeral()(Thing);
-
+      const StaticComponent = props => {
+        expect(props).to.include.keys(
+          'setState',
+          'replaceState',
+          'state'
+        );
+        return <span/>;
+      };
+      const Wrapped = ephemeral()(StaticComponent);
       renderToStaticMarkup(
         <Provider stores={{ ephemeral: store, default: store.parent }}>
-          <WrappedThing/>
+          <Wrapped/>
         </Provider>
       );
     });
@@ -154,49 +106,38 @@ describe('The ephemeral wrapper', () => {
 
   describe('`mapState()`', () => {
     it('should recieve `{ state }`', () => {
-      class Thing extends Component {
-        render() {
-          return <span/>;
-        }
-      }
-
-      const WrappedThing = ephemeral({
+      const Wrapped = ephemeral({
         mapState(params) {
           expect(params).to.have.key('state');
           return params;
         },
-      })(Thing);
-
+      })(BasicComponent);
       renderToStaticMarkup(
         <Provider stores={{ ephemeral: store, default: store.parent }}>
-          <WrappedThing/>
+          <Wrapped/>
         </Provider>
       );
     });
 
     it('should get merged with props', () => {
-      class Thing extends Component {
-        render() {
-          expect(this.props).to.include.keys(
-            'custom1',
-            'custom2'
-          );
-          return <span/>;
-        }
-      }
-
-      const WrappedThing = ephemeral({
-        mapState(params) {
+      const StaticComponent = props => {
+        expect(props).to.include.keys(
+          'custom1',
+          'custom2'
+        );
+        return <span/>;
+      };
+      const Wrapped = ephemeral({
+        mapState() {
           return {
             custom1: 1,
             custom2: 2,
           };
         },
-      })(Thing);
-
+      })(StaticComponent);
       renderToStaticMarkup(
         <Provider stores={{ ephemeral: store, default: store.parent }}>
-          <WrappedThing/>
+          <Wrapped/>
         </Provider>
       );
     });
@@ -204,49 +145,38 @@ describe('The ephemeral wrapper', () => {
 
   describe('`mapActions()`', () => {
     it('should recieve `{ setState, replaceState }`', () => {
-      class Thing extends Component {
-        render() {
-          return <span/>;
-        }
-      }
-
-      const WrappedThing = ephemeral({
+      const Wrapped = ephemeral({
         mapActions(params) {
           expect(params).to.have.keys('setState', 'replaceState');
           return params;
         },
-      })(Thing);
-
+      })(BasicComponent);
       renderToStaticMarkup(
         <Provider stores={{ ephemeral: store, default: store.parent }}>
-          <WrappedThing/>
+          <Wrapped/>
         </Provider>
       );
     });
 
     it('should get merged with props', () => {
-      class Thing extends Component {
-        render() {
-          expect(this.props).to.include.keys(
-            'custom1',
-            'custom2'
-          );
-          return <span/>;
-        }
-      }
-
-      const WrappedThing = ephemeral({
-        mapActions(params) {
+      const StaticComponent = props => {
+        expect(props).to.include.keys(
+          'custom1',
+          'custom2'
+        );
+        return <span/>;
+      };
+      const Wrapped = ephemeral({
+        mapActions() {
           return {
             custom1: 1,
             custom2: 2,
           };
         },
-      })(Thing);
-
+      })(StaticComponent);
       renderToStaticMarkup(
         <Provider stores={{ ephemeral: store, default: store.parent }}>
-          <WrappedThing/>
+          <Wrapped/>
         </Provider>
       );
     });
