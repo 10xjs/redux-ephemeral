@@ -1,4 +1,4 @@
-import React, { Component, createElement } from 'react';
+import { Component, createElement } from 'react';
 import { connect } from 'react-redux';
 import storeShape from 'react-redux/lib/utils/storeShape';
 import wrapComponent from 'wrap-component';
